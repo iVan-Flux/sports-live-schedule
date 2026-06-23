@@ -1,83 +1,119 @@
 import datetime
 import time
-from flask import Flask, render_template
+import json
+from flask import Flask, render_template, request
 import cloudscraper
 
 app = Flask(__name__)
 
-# ৪টি প্রধান খেলার তালিকা
-SPORTS_LIST = ["football", "cricket", "basketball", "ice-hockey"]
-
-def fetch_live_matches():
+def fetch_live_matches_by_input(sport, date_str):
     scraper = cloudscraper.create_scraper()
-    now = datetime.datetime.now()
-    end_window = now + datetime.timedelta(hours=24)
-    start_ts = now.timestamp()
-    end_ts = end_window.timestamp()
+    
+    # --- ১. Session Warmup ---
+    print("⏳ Warming up session (visiting sofascore.com)...")
+    headers_warmup = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Connection": "keep-alive"
+    }
+    try:
+        scraper.get("https://www.sofascore.com", headers=headers_warmup, timeout=10)
+        print("✅ Session warmed up successfully!")
+    except Exception as e:
+        print(f"⚠️ Warmup failed: {e}")
 
-    dates_to_check = sorted(list(set([now.date(), end_window.date()])))
-    seen_ids = set()
+    # API রিকোয়েস্ট হেডার
+    headers_api = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.sofascore.com/",
+        "Origin": "https://www.sofascore.com",
+        "X-Requested-With": "XMLHttpRequest",
+        "Connection": "keep-alive"
+    }
+
+    # ইউজার থেকে আসা স্পোর্টস ও ডেট অনুযায়ী এপিআই ইউআরএল সেট
+    urls_to_try = [
+        f"https://www.sofascore.com/api/v1/sport/{sport}/scheduled-events/{date_str}",
+        f"https://api.sofascore.com/api/v1/sport/{sport}/scheduled-events/{date_str}"
+    ]
+
+    response = None
+    for url in urls_to_try:
+        try:
+            res = scraper.get(url, headers=headers_api, timeout=15)
+            if res.status_code == 200:
+                response = res
+                print(f"✅ Success (200) for {sport.upper()} on {url}")
+                break
+            else:
+                print(f"⚠️ Status {res.status_code} on {url}")
+        except Exception as e:
+            print(f"⚠️ Error on {url}: {e}")
+
     matches_list = []
+    if response:
+        try:
+            events = response.json().get('events', [])
+            seen_ids = set()
+            for event in events:
+                raw_id = str(event.get('id'))
+                if raw_id in seen_ids:
+                    continue
 
-    for sport in SPORTS_LIST:
-        for d in dates_to_check:
-            date_str = d.strftime("%Y-%m-%d")
-            url = f"https://api.sofascore.com/api/v1/sport/{sport}/scheduled-events/{date_str}"
+                league = event.get('tournament', {}).get('name')
+                unique_id = event.get('tournament', {}).get('uniqueTournament', {}).get('id')
+                event_ts = event.get('startTimestamp')
+                start_dt = datetime.datetime.fromtimestamp(event_ts)
 
-            try:
-                response = scraper.get(url)
-                if response.status_code == 200:
-                    events = response.json().get('events', [])
-                    for event in events:
-                        event_ts = event.get('startTimestamp')
-                        # ২৪ ঘণ্টার উইন্ডো চেক
-                        if not (start_ts <= event_ts < end_ts):
-                            continue
+                team1_short = event.get('homeTeam', {}).get('shortName') or event.get('homeTeam', {}).get('name')
+                team2_short = event.get('awayTeam', {}).get('shortName') or event.get('awayTeam', {}).get('name')
 
-                        raw_id = str(event.get('id'))
-                        if raw_id in seen_ids:
-                            continue
+                # স্ট্যান্ডার্ড ডেট-টাইম ফরম্যাট
+                match_time_readable = start_dt.strftime("%I:%M %p (%d-%b-%Y)")
 
-                        league = event.get('tournament', {}).get('name')
-                        unique_id = event.get('tournament', {}).get('uniqueTournament', {}).get('id')
+                # এসেট ইউআরএল তৈরি
+                league_logo = f"https://api.sofascore.com/api/v1/unique-tournament/{unique_id}/image/dark" if unique_id else ""
+                team1_logo = f"https://api.sofascore.com/api/v1/team/{event.get('homeTeam', {}).get('id')}/image"
+                team2_logo = f"https://api.sofascore.com/api/v1/team/{event.get('awayTeam', {}).get('id')}/image"
 
-                        start_dt = datetime.datetime.fromtimestamp(event_ts)
-                        team1_short = event.get('homeTeam', {}).get('shortName') or event.get('homeTeam', {}).get('name')
-                        team2_short = event.get('awayTeam', {}).get('shortName') or event.get('awayTeam', {}).get('name')
+                match_data = {
+                    "id": raw_id,
+                    "leagueLogo": league_logo,
+                    "leagueTitle": league,
+                    "matchTime": match_time_readable,
+                    "sportType": sport.upper(),
+                    "team1Logo": team1_logo,
+                    "team1Name": team1_short,
+                    "team2Logo": team2_logo,
+                    "team2Name": team2_short
+                }
+                matches_list.append(match_data)
+                seen_ids.add(raw_id)
 
-                        # সময় ফরম্যাট
-                        match_time_readable = start_dt.strftime("%I:%M %p (%d-%b)")
+        except Exception as e:
+            print(f"⚠️ Error parsing events: {e}")
 
-                        match_data = {
-                            "leagueLogo": f"https://api.sofascore.com/api/v1/unique-tournament/{unique_id}/image/dark" if unique_id else None,
-                            "leagueTitle": league,
-                            "matchTime": match_time_readable,
-                            "sportType": sport.upper(),
-                            "team1Logo": f"https://api.sofascore.com/api/v1/team/{event.get('homeTeam', {}).get('id')}/image",
-                            "team1Name": team1_short,
-                            "team2Logo": f"https://api.sofascore.com/api/v1/team/{event.get('awayTeam', {}).get('id')}/image",
-                            "team2Name": team2_short
-                        }
-                        matches_list.append(match_data)
-                        seen_ids.add(raw_id)
-
-            except Exception as e:
-                print(f"Error fetching {sport}: {e}")
-
-            time.sleep(0.1)
     return matches_list
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
-    matches = fetch_live_matches()
-    # খেলা অনুযায়ী গ্রুপ করা
-    grouped_matches = {}
-    for match in matches:
-        sport = match['sportType']
-        if sport not in grouped_matches:
-            grouped_matches[sport] = []
-        grouped_matches[sport].append(match)
-    return render_template('index.html', grouped_matches=grouped_matches)
+    sport = request.args.get('sport')
+    date_str = request.args.get('date')
+    
+    matches = []
+    if sport and date_str:
+        matches = fetch_live_matches_by_input(sport, date_str)
+    
+    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    return render_template('index.html', 
+                           matches=matches, 
+                           selected_sport=sport, 
+                           selected_date=date_str, 
+                           today_str=today_str)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=7070)
