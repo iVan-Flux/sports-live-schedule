@@ -1,83 +1,272 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Match Schedule</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no" />
+    <meta name="referrer" content="no-referrer" />
+    <title>HIGHLIGHTS | Search Matches & Copy Asset URLs</title>
+    <meta name="description" content="Search dynamic match details and copy assets cleanly." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             background-color: #0f172a; /* Slate 900 */
             color: #f8fafc; /* Slate 50 */
+            font-family: 'Rubik', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 2px;
         }
     </style>
 </head>
-<body class="font-sans antialiased">
+<body class="antialiased">
     <div class="max-w-6xl mx-auto px-4 py-8">
-        <header class="text-center mb-10 border-b border-slate-800 pb-6">
-            <h1 class="text-3xl md:text-5xl font-bold text-emerald-400 mb-2">Live Match Schedule</h1>
-            <p class="text-slate-400 text-sm md:text-base">Upcoming matches for the next 24 hours</p>
+        <header class="text-center mb-8 border-b border-slate-800 pb-6">
+            <h1 class="text-4xl md:text-6xl font-black text-emerald-400 mb-2 uppercase tracking-wider">HIGHLIGHTS</h1>
+            <p class="text-slate-400 text-sm md:text-base">Search Sport Categories & Dates to Fetch Match details & Asset URLs</p>
         </header>
 
-        {% if not grouped_matches %}
-            <div class="text-center py-12">
-                <p class="text-lg text-slate-500">No VIP matches scheduled in the next 24 hours.</p>
+        <!-- ক্যাটাগরি ও ডেট সার্চ ফর্ম -->
+        <form method="GET" action="/" class="max-w-md mx-auto bg-slate-800/80 p-6 rounded-2xl border border-slate-700/60 shadow-xl mb-12 flex flex-col gap-4">
+            <!-- সোফাস্কোরের সব স্পোর্টস ক্যাটাগরি ড্রপডাউন -->
+            <div>
+                <label for="sport" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Category</label>
+                <select id="sport" name="sport" required class="w-full bg-slate-900 text-slate-100 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 font-semibold cursor-pointer shadow-inner">
+                    <option value="football" {% if selected_sport == 'football' %}selected{% endif %}>FOOTBALL (ফুটবল)</option>
+                    <option value="cricket" {% if selected_sport == 'cricket' %}selected{% endif %}>CRICKET (ক্রিকেট)</option>
+                    <option value="basketball" {% if selected_sport == 'basketball' %}selected{% endif %}>BASKETBALL (বাস্কেটবল)</option>
+                    <option value="tennis" {% if selected_sport == 'tennis' %}selected{% endif %}>TENNIS (টেনিস)</option>
+                    <option value="table-tennis" {% if selected_sport == 'table-tennis' %}selected{% endif %}>TABLE TENNIS (টেবিল টেনিস)</option>
+                    <option value="badminton" {% if selected_sport == 'badminton' %}selected{% endif %}>BADMINTON (ব্যাডমিন্টন)</option>
+                    <option value="volleyball" {% if selected_sport == 'volleyball' %}selected{% endif %}>VOLLEYBALL (ভলিবল)</option>
+                    <option value="ice-hockey" {% if selected_sport == 'ice-hockey' %}selected{% endif %}>ICE HOCKEY (আইস হকি)</option>
+                    <option value="baseball" {% if selected_sport == 'baseball' %}selected{% endif %}>BASEBALL (বেসবল)</option>
+                    <option value="handball" {% if selected_sport == 'handball' %}selected{% endif %}>HANDBALL (হ্যান্ডবল)</option>
+                    <option value="futsal" {% if selected_sport == 'futsal' %}selected{% endif %}>FUTSAL (ফুটসাল)</option>
+                    <option value="rugby" {% if selected_sport == 'rugby' %}selected{% endif %}>RUGBY (রাগবি)</option>
+                    <option value="american-football" {% if selected_sport == 'american-football' %}selected{% endif %}>AMERICAN FOOTBALL (আমেরিকান ফুটবল)</option>
+                    <option value="waterpolo" {% if selected_sport == 'waterpolo' %}selected{% endif %}>WATER POLO (ওয়াটার পোলো)</option>
+                    <option value="darts" {% if selected_sport == 'darts' %}selected{% endif %}>DARTS (ডার্টস)</option>
+                    <option value="snooker" {% if selected_sport == 'snooker' %}selected{% endif %}>SNOOKER (স্নুকার)</option>
+                    <option value="padel" {% if selected_sport == 'padel' %}selected{% endif %}>PADEL (প্যাডেল)</option>
+                    <option value="mma" {% if selected_sport == 'mma' %}selected{% endif %}>MMA (এমএমএ)</option>
+                    <option value="boxing" {% if selected_sport == 'boxing' %}selected{% endif %}>BOXING (বক্সিং)</option>
+                    <option value="motorsport" {% if selected_sport == 'motorsport' %}selected{% endif %}>MOTORSPORT (মোটরস্পোর্টস)</option>
+                    <option value="esports" {% if selected_sport == 'esports' %}selected{% endif %}>ESPORTS (ই-স্পোর্টস)</option>
+                </select>
             </div>
-        {% else %}
-            {% for sport, matches in grouped_matches.items() %}
-                <div class="mb-12">
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-200 mb-6 flex items-center gap-2 border-l-4 border-emerald-500 pl-3 uppercase">
-                        {{ sport }}
-                    </h2>
-                    
+
+            <!-- ডেট ইনপুট এরিয়া -->
+            <div>
+                <label for="date" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Select Date</label>
+                <input type="date" id="date" name="date" required value="{{ selected_date or today_str }}" class="w-full bg-slate-900 text-slate-100 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 font-semibold cursor-pointer shadow-inner">
+            </div>
+
+            <!-- সাবমিট বাটন -->
+            <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black py-3 rounded-xl uppercase tracking-wider transition-all duration-200 mt-2 shadow-lg">
+                Submit
+            </button>
+        </form>
+
+        <!-- সার্চ রেজাল্ট প্রদর্শনী -->
+        {% if selected_sport and selected_date %}
+            <div class="mb-6">
+                <h2 class="text-xl md:text-2xl font-bold text-slate-200 mb-6 flex items-center gap-2 border-l-4 border-emerald-500 pl-3 uppercase">
+                    Results: {{ selected_sport }} ({{ selected_date }})
+                </h2>
+                
+                {% if not matches %}
+                    <div class="text-center py-12 bg-slate-800/40 rounded-2xl border border-slate-800">
+                        <p class="text-lg text-slate-500">No matches scheduled for the selected category and date.</p>
+                    </div>
+                {% else %}
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {% for match in matches %}
-                            <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-slate-700 hover:border-emerald-500/50 transition-all duration-300">
-                                <!-- League details -->
-                                <div class="flex items-center gap-3 mb-4 border-b border-slate-700/50 pb-3">
-                                    {% if match.leagueLogo %}
-                                        <img src="{{ match.leagueLogo }}" alt="League Logo" class="w-6 h-6 object-contain rounded" onerror="this.src='https://placehold.co/50x50/1e293b/ffffff?text=L'">
-                                    {% endif %}
-                                    <div class="text-xs font-semibold text-slate-400 truncate w-full" title="{{ match.leagueTitle }}">
-                                        {{ match.leagueTitle }}
+                            <div class="bg-slate-800 rounded-2xl p-5 shadow-lg border border-slate-700 hover:border-emerald-500/50 transition-all duration-300 flex flex-col justify-between">
+                                <div>
+                                    <!-- সময় ও তারিখ (টপ-এ থাকবে) -->
+                                    <div class="mb-4 bg-slate-900/60 rounded-xl py-2 px-3 text-center border border-slate-700/30">
+                                        <span class="text-[10px] uppercase tracking-wider text-slate-500 block mb-0.5 font-bold">Match Start Time</span>
+                                        <span class="text-xs md:text-sm font-black text-emerald-400">{{ match.matchTime }}</span>
+                                    </div>
+
+                                    <!-- League details -->
+                                    <div class="flex items-center gap-3 mb-4 border-b border-slate-700/50 pb-3">
+                                        {% if match.leagueLogo %}
+                                            <img src="{{ match.leagueLogo }}" alt="League Logo" class="w-6 h-6 object-contain rounded" onerror="this.src='https://placehold.co/50x50/1e293b/ffffff?text=L'">
+                                        {% else %}
+                                            <div class="w-6 h-6 flex items-center justify-center bg-slate-700 rounded text-[10px] font-bold">L</div>
+                                        {% endif %}
+                                        <div class="text-xs font-semibold text-slate-400 truncate w-full" title="{{ match.leagueTitle }}">
+                                            {{ match.leagueTitle }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Teams Comparison -->
+                                    <div class="grid grid-cols-3 items-center text-center my-4">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <img src="{{ match.team1Logo }}" alt="{{ match.team1Name }}" class="w-12 h-12 object-contain" onerror="this.src='https://placehold.co/100x100/1e293b/ffffff?text=T1'">
+                                            <span class="text-xs md:text-sm font-semibold truncate w-full px-1" title="{{ match.team1Name }}">
+                                                {{ match.team1Name }}
+                                            </span>
+                                        </div>
+
+                                        <div class="flex flex-col items-center">
+                                            <span class="text-xs font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 px-2 py-1 rounded-full">VS</span>
+                                        </div>
+
+                                        <div class="flex flex-col items-center gap-2">
+                                            <img src="{{ match.team2Logo }}" alt="{{ match.team2Name }}" class="w-12 h-12 object-contain" onerror="this.src='https://placehold.co/100x100/1e293b/ffffff?text=T2'">
+                                            <span class="text-xs md:text-sm font-semibold truncate w-full px-1" title="{{ match.team2Name }}">
+                                                {{ match.team2Name }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Teams Comparison -->
-                                <div class="grid grid-cols-3 items-center text-center my-4">
-                                    <!-- Team 1 -->
-                                    <div class="flex flex-col items-center gap-2">
-                                        <img src="{{ match.team1Logo }}" alt="{{ match.team1Name }}" class="w-12 h-12 object-contain" onerror="this.src='https://placehold.co/100x100/1e293b/ffffff?text=T1'">
-                                        <span class="text-xs md:text-sm font-semibold truncate w-full px-1" title="{{ match.team1Name }}">
-                                            {{ match.team1Name }}
-                                        </span>
-                                    </div>
+                                <!-- টগল বাটন ও কপি ড্রয়ার প্যানেল -->
+                                <div class="mt-4 border-t border-slate-700/50 pt-3">
+                                    <button onclick="toggleJson('{{ match.id }}')" class="flex items-center justify-between w-full text-xs text-slate-400 hover:text-emerald-400 transition-colors duration-200 focus:outline-none font-bold uppercase tracking-wider">
+                                        <span>Show Match Assets</span>
+                                        <svg id="arrow-{{ match.id }}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                    
+                                    <div id="json-{{ match.id }}" class="hidden mt-4 flex flex-col gap-3">
+                                        
+                                        <!-- League Name Row -->
+                                        <div class="flex items-center justify-between gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/30">
+                                            <div class="text-xs truncate w-full">
+                                                <span class="text-[9px] text-slate-500 uppercase font-bold block">League Name</span>
+                                                <span class="font-semibold text-slate-300 truncate block">{{ match.leagueTitle }}</span>
+                                            </div>
+                                            <button id="cp-ln-{{ match.id }}" onclick="copyToClipboard('{{ match.leagueTitle }}', 'cp-ln-{{ match.id }}')" class="bg-emerald-600 hover:bg-emerald-700 text-slate-50 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0">Copy</button>
+                                        </div>
 
-                                    <!-- VS Indicator -->
-                                    <div class="flex flex-col items-center">
-                                        <span class="text-xs font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 px-2 py-1 rounded-full">VS</span>
-                                    </div>
+                                        <!-- League Logo URL Row -->
+                                        <div class="flex items-center justify-between gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/30">
+                                            <div class="text-xs truncate w-full">
+                                                <span class="text-[9px] text-slate-500 uppercase font-bold block">League Logo URL</span>
+                                                <span class="text-[9px] text-emerald-400 font-mono block truncate">{{ match.leagueLogo }}</span>
+                                            </div>
+                                            <button id="cp-ll-{{ match.id }}" onclick="copyToClipboard('{{ match.leagueLogo }}', 'cp-ll-{{ match.id }}')" class="bg-emerald-600 hover:bg-emerald-700 text-slate-50 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0">Copy</button>
+                                        </div>
 
-                                    <!-- Team 2 -->
-                                    <div class="flex flex-col items-center gap-2">
-                                        <img src="{{ match.team2Logo }}" alt="{{ match.team2Name }}" class="w-12 h-12 object-contain" onerror="this.src='https://placehold.co/100x100/1e293b/ffffff?text=T2'">
-                                        <span class="text-xs md:text-sm font-semibold truncate w-full px-1" title="{{ match.team2Name }}">
-                                            {{ match.team2Name }}
-                                        </span>
-                                    </div>
-                                </div>
+                                        <!-- Team A Name Row -->
+                                        <div class="flex items-center justify-between gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/30">
+                                            <div class="text-xs truncate w-full">
+                                                <span class="text-[9px] text-slate-500 uppercase font-bold block">Team A Name</span>
+                                                <span class="font-semibold text-slate-300 truncate block">{{ match.team1Name }}</span>
+                                            </div>
+                                            <button id="cp-t1n-{{ match.id }}" onclick="copyToClipboard('{{ match.team1Name }}', 'cp-t1n-{{ match.id }}')" class="bg-emerald-600 hover:bg-emerald-700 text-slate-50 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0">Copy</button>
+                                        </div>
 
-                                <!-- Match Time -->
-                                <div class="mt-4 bg-slate-900/60 rounded-lg py-2 px-3 text-center border border-slate-700/30">
-                                    <span class="text-[11px] uppercase tracking-wider text-slate-500 block mb-0.5">Match Start Time</span>
-                                    <span class="text-xs md:text-sm font-bold text-emerald-400">{{ match.matchTime }}</span>
+                                        <!-- Team A Logo Row -->
+                                        <div class="flex items-center justify-between gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/30">
+                                            <div class="flex items-center gap-3 truncate w-full">
+                                                <img src="{{ match.team1Logo }}" alt="T1 Logo" class="w-8 h-8 object-contain rounded border border-slate-700 p-0.5 shrink-0" onerror="this.src='https://placehold.co/100x100/1e293b/ffffff?text=T1'">
+                                                <div class="truncate">
+                                                    <span class="text-[9px] text-slate-500 uppercase font-bold block">Team A Logo URL</span>
+                                                    <span class="text-[9px] text-emerald-400 font-mono block truncate">{{ match.team1Logo }}</span>
+                                                </div>
+                                            </div>
+                                            <button id="cp-t1l-{{ match.id }}" onclick="copyToClipboard('{{ match.team1Logo }}', 'cp-t1l-{{ match.id }}')" class="bg-emerald-600 hover:bg-emerald-700 text-slate-50 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0">Copy</button>
+                                        </div>
+
+                                        <!-- Team B Name Row -->
+                                        <div class="flex items-center justify-between gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/30">
+                                            <div class="text-xs truncate w-full">
+                                                <span class="text-[9px] text-slate-500 uppercase font-bold block">Team B Name</span>
+                                                <span class="font-semibold text-slate-300 truncate block">{{ match.team2Name }}</span>
+                                            </div>
+                                            <button id="cp-t2n-{{ match.id }}" onclick="copyToClipboard('{{ match.team2Name }}', 'cp-t2n-{{ match.id }}')" class="bg-emerald-600 hover:bg-emerald-700 text-slate-50 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0">Copy</button>
+                                        </div>
+
+                                        <!-- Team B Logo Row -->
+                                        <div class="flex items-center justify-between gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/30">
+                                            <div class="flex items-center gap-3 truncate w-full">
+                                                <img src="{{ match.team2Logo }}" alt="T2 Logo" class="w-8 h-8 object-contain rounded border border-slate-700 p-0.5 shrink-0" onerror="this.src='https://placehold.co/100x100/1e293b/ffffff?text=T2'">
+                                                <div class="truncate">
+                                                    <span class="text-[9px] text-slate-500 uppercase font-bold block">Team B Logo URL</span>
+                                                    <span class="text-[9px] text-emerald-400 font-mono block truncate">{{ match.team2Logo }}</span>
+                                                </div>
+                                            </div>
+                                            <button id="cp-t2l-{{ match.id }}" onclick="copyToClipboard('{{ match.team2Logo }}', 'cp-t2l-{{ match.id }}')" class="bg-emerald-600 hover:bg-emerald-700 text-slate-50 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0">Copy</button>
+                                        </div>
+
+                                    </div>
                                 </div>
                             </div>
                         {% endfor %}
                     </div>
-                </div>
-            {% endfor %}
+                {% endif %}
+            </div>
         {% endif %}
     </div>
+
+    <!-- কপি এবং ড্রয়ার অ্যাকশন স্ক্রিপ্ট -->
+    <script>
+        // কপি করার নিরাপদ মেথড
+        function copyToClipboard(text, buttonId) {
+            if (!text || text.trim() === "") {
+                alert("No URL or text to copy!");
+                return;
+            }
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById(buttonId);
+                const originalText = btn.innerHTML;
+                btn.innerHTML = "Copied!";
+                btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                btn.classList.add('bg-blue-600');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-blue-600');
+                    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                }, 1500);
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const btn = document.getElementById(buttonId);
+                    btn.innerHTML = "Copied!";
+                    setTimeout(() => { btn.innerHTML = "Copy"; }, 1500);
+                } catch (e) {
+                    alert("Copy failed, please copy manually.");
+                }
+                document.body.removeChild(textArea);
+            });
+        }
+
+        // টগল ড্রয়ার ওপেন/ক্লোজ
+        function toggleJson(matchId) {
+            const jsonBlock = document.getElementById(`json-${matchId}`);
+            const arrow = document.getElementById(`arrow-${matchId}`);
+            
+            if (jsonBlock.classList.contains('hidden')) {
+                jsonBlock.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+            } else {
+                jsonBlock.classList.add('hidden');
+                arrow.classList.remove('rotate-180');
+            }
+        }
+    </script>
 </body>
 </html>
