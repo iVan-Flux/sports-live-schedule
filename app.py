@@ -5,40 +5,7 @@ import cloudscraper
 
 app = Flask(__name__)
 
-# --- STRICT LEAGUES ---
-STRICT_LEAGUES = {
-    "England": ["Premier League", "Championship", "League One", "League Two", "FA Cup", "EFL Cup"],
-    "Spain": ["LaLiga", "LaLiga 2", "Copa del Rey", "Supercopa de España"],
-    "Germany": ["Bundesliga", "2. Bundesliga", "DFB Pokal"],
-    "Italy": ["Serie A", "Serie B", "Coppa Italia"],
-    "France": ["Ligue 1", "Ligue 2", "Coupe de France"],
-    "Turkey": ["Trendyol Süper Lig", "Türkiye Kupası"],
-    "Portugal": ["Liga Portugal", "Taça de Portugal"],
-    "Netherlands": ["Eredivisie", "KNVB Beker"],
-    "Belgium": ["Pro League"],
-    "Argentina": ["Liga Profesional de Fútbol", "Copa de la Liga Profesional"],
-    "Brazil": ["Brasileirão Série A", "Copa do Brasil"],
-    "USA": ["MLS", "US Open Cup"],
-    "Saudi Arabia": ["Saudi Pro League", "King's Cup"],
-    "India": ["Super League", "I-League"],
-    "Bangladesh": ["Bangladesh Premier League"],
-    "Australia": ["A-League Men", "Australia Cup"]
-}
-
-# --- PARTIAL MATCH LEAGUES ---
-PARTIAL_LEAGUES = [
-    "World Cup", "Olympic Games", "Club World Cup",
-    "European Championship", "UEFA Nations League", "Copa América",
-    "Africa Cup of Nations", "CONCACAF Gold Cup", "AFC Asian Cup",
-    "UEFA Champions League", "UEFA Europa League", "UEFA Conference League", "UEFA Super Cup",
-    "AFC Champions League", "AFC Cup",
-    "CONMEBOL Libertadores", "CONMEBOL Sudamericana", "CONCACAF Champions Cup",
-    "CAF Champions League", "CAF Confederation Cup"
-]
-
-CRICKET_VIP_KEYWORDS = ["World Cup", "Asia Cup", "Indian Premier League", "WPL", "BPL", "Pakistan Super League", "BBL", "The Hundred", "CPL", "SA20", "ILT20", "LPL", "Test Series", "ODI", "T20I", "International", "Tour"]
-CRICKET_BLOCKLIST = ["Division", "Plate", "Club", "XI", "Academy", "U19", "List A", "Second XI", "Provincial", "Trophy", "Shield"]
-OTHER_VIP = ["NBA", "NHL"]
+# ৪টি প্রধান খেলার তালিকা
 SPORTS_LIST = ["football", "cricket", "basketball", "ice-hockey"]
 
 def fetch_live_matches():
@@ -63,6 +30,7 @@ def fetch_live_matches():
                     events = response.json().get('events', [])
                     for event in events:
                         event_ts = event.get('startTimestamp')
+                        # ২৪ ঘণ্টার উইন্ডো চেক
                         if not (start_ts <= event_ts < end_ts):
                             continue
 
@@ -71,45 +39,13 @@ def fetch_live_matches():
                             continue
 
                         league = event.get('tournament', {}).get('name')
-                        category = event.get('tournament', {}).get('category', {}).get('name')
-
-                        is_vip = False
-
-                        if sport == 'football':
-                            if category in STRICT_LEAGUES:
-                                if league in STRICT_LEAGUES[category]:
-                                    is_vip = True
-
-                            if not is_vip:
-                                for keyword in PARTIAL_LEAGUES:
-                                    if keyword.lower() in league.lower():
-                                        is_vip = True
-                                        break
-
-                        elif sport == 'cricket':
-                            is_blocked = False
-                            for bad in CRICKET_BLOCKLIST:
-                                if bad.lower() in league.lower():
-                                    is_blocked = True
-                                    break
-                            if not is_blocked:
-                                for good in CRICKET_VIP_KEYWORDS:
-                                    if good.lower() in league.lower():
-                                        is_vip = True
-                                        break
-
-                        elif league in OTHER_VIP:
-                            is_vip = True
-
-                        if not is_vip:
-                            continue
-
-                        start_dt = datetime.datetime.fromtimestamp(event_ts)
                         unique_id = event.get('tournament', {}).get('uniqueTournament', {}).get('id')
 
+                        start_dt = datetime.datetime.fromtimestamp(event_ts)
                         team1_short = event.get('homeTeam', {}).get('shortName') or event.get('homeTeam', {}).get('name')
                         team2_short = event.get('awayTeam', {}).get('shortName') or event.get('awayTeam', {}).get('name')
 
+                        # সময় ফরম্যাট
                         match_time_readable = start_dt.strftime("%I:%M %p (%d-%b)")
 
                         match_data = {
@@ -134,7 +70,7 @@ def fetch_live_matches():
 @app.route('/')
 def index():
     matches = fetch_live_matches()
-    # Group matches by sport type to display nicely
+    # খেলা অনুযায়ী গ্রুপ করা
     grouped_matches = {}
     for match in matches:
         sport = match['sportType']
